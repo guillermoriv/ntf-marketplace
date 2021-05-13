@@ -22,8 +22,8 @@ contract MarketPlaceV1 is Initializable {
   address private admin;
   address private recipient;
   uint private fee;
-  mapping(address => mapping(uint => Sell)) public sellers;
-  mapping(address => uint) userSells;
+  mapping(uint => Sell) public sales;
+  uint public salesId;
 
   /// @notice This is the Sell struct, the basic structs contain the owner of the selling tokens.
   struct Sell {
@@ -96,17 +96,17 @@ contract MarketPlaceV1 is Initializable {
     require(_price > 0, "The full price for the tokens need to be greater than 0");
     require(_deadline > 3600, "The deadline needs to be greater than 1 hour");
 
-    sellers[msg.sender][userSells[msg.sender]] = Sell(
+    sales[salesId] = Sell(
       msg.sender,
       _token,
       _id,
       _amountOfToken,
-      _deadline,
+      block.timestamp + _deadline,
       _price,
       false
     );
 
-    userSells[msg.sender]++;
+    salesId++;
 
     emit SellEvent(
       msg.sender,
