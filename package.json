@@ -4,7 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "fork": "hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/am_fb42tWDfhZ88EkuQKe0g9ueeWh14j --fork-block-number 11589707"
+    "fork": "hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/am_fb42tWDfhZ88EkuQKe0g9ueeWh14j --fork-block-number 11589707",
+    "test": "hardhat test --network localhost"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.1.7",
