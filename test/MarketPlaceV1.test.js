@@ -5,7 +5,7 @@ let marketPlaceV1;
 let testERC1155;
 
 before(async () => {
-  // Creating the marketPlace:
+  // Creating the marketPlace for global testing:
   const MarketPlaceV1 = await ethers.getContractFactory('MarketPlaceV1');
   marketPlaceV1 = await upgrades.deployProxy(
     MarketPlaceV1,
@@ -21,7 +21,18 @@ before(async () => {
 });
 
 describe('Testing the NFT MarketPlaceV1', () => {
-  it('deployed correctly without error', async () => {});
+  it('deploy a new contract correctly without error', async () => {
+    // Creating a marketplace just for the porpuse of testing.
+    const MarketPlaceTest = await ethers.getContractFactory('MarketPlaceV1');
+    const marketPlaceTest = await upgrades.deployProxy(
+      MarketPlaceTest,
+      ['0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'],
+      { initializer: 'initialize' }
+    );
+    await marketPlaceTest.deployed();
+
+    assert(marketPlaceTest.address);
+  });
 
   it('print the address of the marketPlace', async () => {
     assert.ok(marketPlaceV1.address);
@@ -33,10 +44,14 @@ describe('Testing the NFT MarketPlaceV1', () => {
       1,
       150,
       4000,
-      45
+      4.5 * 10 ** 2
     );
 
     assert(result);
+  });
+
+  it('can be upgradeable to a second implementation', async () => {
+    //@TODO need to make a implementation V2 of this contract.
   });
 
   it('showing the sell created by the ERC1155 token', async () => {
@@ -45,5 +60,10 @@ describe('Testing the NFT MarketPlaceV1', () => {
     for (const res of result) {
       console.log(res.toString());
     }
+  });
+
+  it('buys the token at the current price of the oracle', async () => {
+    const result = await marketPlaceV1.buyToken();
+    console.log(parseFloat(result.toString()) / 10 ** 8);
   });
 });

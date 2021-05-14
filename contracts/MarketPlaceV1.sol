@@ -40,14 +40,26 @@ contract MarketPlaceV1 is Initializable {
   event SellEvent (
     address _seller,
     address _token,
+    uint256 _offerId,
     uint256 _tokenId,
     uint256 _amount
   );
+
+  /** 
+    @notice This are the enums for the price feeds that what we are working.
+    @dev It's going to be passed as a parameter.
+  **/
+  enum PriceFeed {
+    DAI,
+    LINK,
+    ETH
+  }
 
   /// @param _recipient This is the recipient for the fees that are charged;
   /// @notice this function is going to initialize the admin, the fee and the recipient.
   /// @dev the fee is going to be initialize as 10, so when is divided by 1000, gives 0.01.
   function initialize(address _recipient) public initializer {
+    require(_recipient != address(0));
     admin = msg.sender;
     recipient = _recipient;
     fee = 10; 
@@ -69,6 +81,32 @@ contract MarketPlaceV1 is Initializable {
   function updateFeeAndRecipient(address _recipient, uint _fee) external onlyAdmin() {
     recipient = _recipient;
     fee = _fee;
+  }
+
+  /** 
+    @notice Internal function to check the prices in the oracle.
+    @dev You need to pass the enum as the parameter.
+    @param _priceFeed Is the price feed that we are going to check in the oracle.
+  **/
+  function _getPriceFeed(PriceFeed _priceFeed) internal view returns (int resultPrice){
+    /*
+      We are going to check for the differents price feeds
+      in out contract and get the price of that feed.
+    */
+    if (_priceFeed == PriceFeed.DAI) {
+      (,int price,,,) = AggregatorV3Interface(DAIUSD).latestRoundData();
+      resultPrice = price;
+    }
+
+    if (_priceFeed == PriceFeed.LINK) {
+      (,int price,,,) = AggregatorV3Interface(LINKUSD).latestRoundData();
+      resultPrice = price;
+    }
+
+    if (_priceFeed == PriceFeed.ETH) {
+      (,int price,,,) = AggregatorV3Interface(ETHUSD).latestRoundData();
+      resultPrice = price;
+    }
   }
 
   /** 
@@ -111,10 +149,35 @@ contract MarketPlaceV1 is Initializable {
     emit SellEvent(
       msg.sender,
       _token,
+      salesId,
       _id,
       _amountOfToken
     );
 
     return true;
+  }
+
+  
+  function buyToken() external view returns (int) {
+    return _getPriceFeed(PriceFeed.LINK);
+  }
+
+
+  /** 
+    @param _idSell The ID of the sell that you want to cancel.
+  **/
+  function cancelSell(uint _idSell) external {
+    /*
+      We need to check if the msg.sender is really the owner
+      of this sell, and if is not sold yet.
+    */
+    require(sales[_idSell].seller == msg.sender, "Cancel: to cancel you need to be the owner of the sell.");
+    require(sales[_idSell].isSold != true, "Cancel: sorry this is already sold.");
+
+    /*
+      After that checking we can safely delete the sell
+      in our marketplace.
+    */
+    delete sales[_idSell];
   }
 }
