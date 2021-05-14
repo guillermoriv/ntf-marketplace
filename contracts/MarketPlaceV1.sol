@@ -205,7 +205,7 @@ contract MarketPlaceV1 is Initializable {
       ethereum and not a token to pay for the tokens.
     */
     if (_paymentMethod == PriceFeed.DAI || _paymentMethod == PriceFeed.LINK) {
-      require(uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))) >= sales[_sellId].price, "buyToken: The amount of token sended need to be grater or equal to the price.");
+      require(_amountTokensIn.div(uint256(_getPriceFeed(_paymentMethod))) >= sales[_sellId].price.div(100), "buyToken: The amount of token sended need to be grater or equal to the price.");
 
       /*  
         We need to aprove this Market to spend ours DAI, LINK tokens.
@@ -218,7 +218,7 @@ contract MarketPlaceV1 is Initializable {
           After we approve the Market to spend our tokens,
           we transfer the tokens to the seller.
         */
-        IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))));
+        IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, _amountTokensIn.div(uint256(_getPriceFeed(_paymentMethod))));
      
         /*
           After we send the tokens DAI to the seller, we send
@@ -247,7 +247,7 @@ contract MarketPlaceV1 is Initializable {
           After we approve the Market to spend our tokens,
           we transfer the tokens to the seller.
         */
-        IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))));
+        IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, _amountTokensIn.div(uint256(_getPriceFeed(_paymentMethod))));
      
         /*
           After we send the tokens LINK to the seller, we send
@@ -271,13 +271,13 @@ contract MarketPlaceV1 is Initializable {
     }
 
     if (_amountTokensIn == 0 && _paymentMethod == PriceFeed.ETH) {
-      require(msg.value >= (uint256(sales[_sellId].price).div(uint256(_getPriceFeed(_paymentMethod)))), "buyToken: Needs to be greater or equal to the price.");
+      require(msg.value >= (uint256(uint256(sales[_sellId].price).div(100)).div(uint256(_getPriceFeed(_paymentMethod)))), "buyToken: Needs to be greater or equal to the price.");
       /*
         We send the ETH sended in the function, for the price
         in USD of the sell.
       */
-      payable(address(sales[_sellId].seller)).transfer(uint256(sales[_sellId].price).div(uint256(_getPriceFeed(_paymentMethod))));
-      payable(address(msg.sender)).transfer(msg.value - uint256(sales[_sellId].price).div(uint256(_getPriceFeed(_paymentMethod))));
+      payable(address(sales[_sellId].seller)).transfer(sales[_sellId].price.div(100).div(uint256(_getPriceFeed(_paymentMethod))));
+      payable(address(msg.sender)).transfer(msg.value - sales[_sellId].price.div(100).div(uint256(_getPriceFeed(_paymentMethod))));
       
       /* 
         After we send the ETH to the user, we send
