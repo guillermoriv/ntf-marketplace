@@ -6,10 +6,12 @@ let testERC1155;
 
 before(async () => {
   // Creating the marketPlace for global testing:
+  const [owner] = await ethers.getSigners();
+
   const MarketPlaceV1 = await ethers.getContractFactory('MarketPlaceV1');
   marketPlaceV1 = await upgrades.deployProxy(
     MarketPlaceV1,
-    ['0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'],
+    [await owner.getAddress()],
     { initializer: 'initialize' }
   );
   await marketPlaceV1.deployed();
@@ -39,10 +41,11 @@ describe('Testing the NFT MarketPlaceV1', () => {
   });
 
   it('created an ERC1155 contract and try to create a sell', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
     const result = await marketPlaceV1.createSell(
       testERC1155.address,
       1,
-      150,
+      4500,
       4000,
       4.5 * 10 ** 2
     );
@@ -57,12 +60,12 @@ describe('Testing the NFT MarketPlaceV1', () => {
   it('showing the sell created by the ERC1155 token', async () => {
     const result = await marketPlaceV1.sales(0);
 
-    for (const res of result) {
-      console.log(res.toString());
-    }
+    console.log(result);
   });
 
   it('buys the token at the current price of the oracle in ETH', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
     // Approving first the MarketPlaceV1 in the ERC1155 manipulate the tokens.
     await testERC1155.setApprovalForAll(marketPlaceV1.address, true);
     /* 
@@ -70,8 +73,19 @@ describe('Testing the NFT MarketPlaceV1', () => {
       on this ERC1155 contract.
     */
 
-    await marketPlaceV1.buyToken(2, 0, 0, {
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+    await marketPlaceV1.connect(addr1).buyToken(2, 0, 0, {
       value: await ethers.utils.parseEther('1'),
     });
+  });
+
+  it('token buyed in the ERC1155 need to dropdown the amount', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+    const balance = await testERC1155.balanceOf(owner.address, 1);
+    assert.strictEqual(balance.toString(), '999999999999999999999995500');
   });
 });
