@@ -98,16 +98,15 @@ contract MarketPlaceV1 is Initializable {
   }
 
   /**
-        @dev infite approve if allowance is not enough
-   */
+    @dev Infinite approve for this marketplace transfer your tokens.
+    @param _to Set the address to for the approve.
+    @param _erc20 The address of the token.
+  **/
   function _setApproval(
-    address to,
-    address erc20,
-    uint256 srcAmt
+    address _to,
+    address _erc20
   ) internal {
-    if (srcAmt > IERC20(erc20).allowance(address(this), to)) {
-      IERC20(erc20).approve(to, type(uint256).max);
-    }
+    IERC20(_erc20).approve(_to, type(uint256).max);
   }
 
   /** 
@@ -188,6 +187,7 @@ contract MarketPlaceV1 is Initializable {
     @notice This is the function for buy the token's from the market.
     @param _paymentMethod Is the payment method that the user wants to use for pay the tokens.
     @param _sellId Is the sell (tokens) that the user wants to buy.
+    @param _amountTokensIn Is the amount of tokens that the user is passing (if is paying with tokens).
   **/
   function buyToken(PriceFeed _paymentMethod, uint256 _sellId, uint256 _amountTokensIn) external payable {
     require(msg.sender != address(0), "buyToken: Needs to be a address.");
