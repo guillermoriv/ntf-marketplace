@@ -239,6 +239,35 @@ contract MarketPlaceV1 is Initializable {
 
         sales[_sellId].isSold = true;
       }
+
+      if (_paymentMethod == PriceFeed.LINK) {
+        _setApproval(address(this), LINK);
+
+        /*
+          After we approve the Market to spend our tokens,
+          we transfer the tokens to the seller.
+        */
+        IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))));
+     
+        /*
+          After we send the tokens LINK to the seller, we send
+          the tokens that the user buy to the user.
+        */
+
+        IERC1155(sales[_sellId].token).safeTransferFrom(
+          sales[_sellId].seller, 
+          msg.sender, 
+          sales[_sellId].tokenId, 
+          sales[_sellId].amountOfToken, 
+          "0x0"
+        );
+
+        /* 
+          After all we set the isSold to true for this sale.
+        */
+
+        sales[_sellId].isSold = true;
+      }
     }
 
     if (_amountTokensIn == 0 && _paymentMethod == PriceFeed.ETH) {
