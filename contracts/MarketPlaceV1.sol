@@ -4,6 +4,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /** 
   @title A NFTMarketPlace what can be upgradeable by implementations.
@@ -15,15 +17,27 @@ contract MarketPlaceV1 is Initializable {
 
   /** 
     @notice All of the Price Feeds for the Aggregator are down here.
+    @dev PriceFeeds below.
   **/
   address private constant DAIUSD = 0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9;
   address private constant LINKUSD = 0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c;
   address private constant ETHUSD = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
+
+  /** 
+    @dev Address of the ERC20 tokens what people can pay with.
+  **/
+  address private constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+  address private constant LINK = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
+
+  /** 
+    @dev Storage variables.
+  **/
   address private admin;
   address private recipient;
   uint private fee;
   mapping(uint => Sell) public sales;
   uint public salesId;
+  using SafeMath for uint256; 
 
   /// @notice This is the Sell struct, the basic structs contain the owner of the selling tokens.
   struct Sell {
@@ -83,12 +97,25 @@ contract MarketPlaceV1 is Initializable {
     fee = _fee;
   }
 
+  /**
+        @dev infite approve if allowance is not enough
+   */
+  function _setApproval(
+    address to,
+    address erc20,
+    uint256 srcAmt
+  ) internal {
+    if (srcAmt > IERC20(erc20).allowance(address(this), to)) {
+      IERC20(erc20).approve(to, type(uint256).max);
+    }
+  }
+
   /** 
     @notice Internal function to check the prices in the oracle.
     @dev You need to pass the enum as the parameter.
     @param _priceFeed Is the price feed that we are going to check in the oracle.
   **/
-  function _getPriceFeed(PriceFeed _priceFeed) internal view returns (int resultPrice){
+  function _getPriceFeed(PriceFeed _priceFeed) internal view returns (int256 resultPrice){
     /*
       We are going to check for the differents price feeds
       in out contract and get the price of that feed.
@@ -157,16 +184,50 @@ contract MarketPlaceV1 is Initializable {
     return true;
   }
 
-  
-  function buyToken() external view returns (int) {
-    return _getPriceFeed(PriceFeed.LINK);
+  /** 
+    @notice This is the function for buy the token's from the market.
+    @param _paymentMethod Is the payment method that the user wants to use for pay the tokens.
+    @param _sellId Is the sell (tokens) that the user wants to buy.
+  **/
+  function buyToken(PriceFeed _paymentMethod, uint256 _sellId, uint256 _amountTokensIn) external payable {
+    require(msg.sender != address(0), "buyToken: Needs to be a address.");
+
+    /*
+      We only call this require, if we know the user is passing , 
+      ethereum and not a token to pay for the tokens.
+    */
+    if (_paymentMethod == PriceFeed.DAI || _paymentMethod == PriceFeed.LINK) {
+      require(uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))) >= sales[_sellId].price);
+    }
+
+    if (_amountTokensIn == 0 && _paymentMethod == PriceFeed.ETH) {
+      require(msg.value >= (uint256(sales[_sellId].price).div(uint256(_getPriceFeed(_paymentMethod)))), "buyToken: Needs to be greater or equal to the price.");
+      /*
+        We send the ETH sended in the function, for the price
+        in USD of the sell.
+      */
+      payable(address(sales[_sellId].seller)).transfer(uint256(sales[_sellId].price).div(uint256(_getPriceFeed(_paymentMethod))));
+      payable(address(msg.sender)).transfer(msg.value - uint256(sales[_sellId].price).div(uint256(_getPriceFeed(_paymentMethod))));
+      
+      /* 
+        After we send the ETH to the user, we send
+        the amountOfToken to the msg.sender.
+      */
+      IERC1155(sales[_sellId].token).safeTransferFrom(
+        sales[_sellId].seller, 
+        msg.sender, 
+        sales[_sellId].tokenId, 
+        sales[_sellId].amountOfToken, 
+        "0x0"
+      );
+    }
   }
 
 
   /** 
     @param _idSell The ID of the sell that you want to cancel.
   **/
-  function cancelSell(uint _idSell) external {
+  function cancelSell(uint256 _idSell) external {
     /*
       We need to check if the msg.sender is really the owner
       of this sell, and if is not sold yet.
