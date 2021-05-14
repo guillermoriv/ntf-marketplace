@@ -70,7 +70,7 @@ describe('Testing the NFT MarketPlaceV1', () => {
       on this ERC1155 contract.
     */
 
-    const result = await marketPlaceV1.buyToken(2, 0, 0, {
+    await marketPlaceV1.buyToken(2, 0, 0, {
       value: await ethers.utils.parseEther('1'),
     });
   });
