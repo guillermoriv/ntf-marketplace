@@ -241,7 +241,7 @@ contract MarketPlaceV1 is Initializable {
   /** 
     @param _idSell The ID of the sell that you want to cancel.
   **/
-  function cancelSell(uint256 _idSell) external {
+  function cancelSell(uint256 _idSell) external returns(bool){
     /*
       We need to check if the msg.sender is really the owner
       of this sell, and if is not sold yet.
@@ -264,5 +264,7 @@ contract MarketPlaceV1 is Initializable {
       sales[_idSell].tokenId,
       sales[_idSell].amountOfToken
     );
+
+    return true;
   }
 }
