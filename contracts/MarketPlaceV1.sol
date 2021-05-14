@@ -205,7 +205,40 @@ contract MarketPlaceV1 is Initializable {
       ethereum and not a token to pay for the tokens.
     */
     if (_paymentMethod == PriceFeed.DAI || _paymentMethod == PriceFeed.LINK) {
-      require(uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))) >= sales[_sellId].price);
+      require(uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))) >= sales[_sellId].price, "buyToken: The amount of token sended need to be grater or equal to the price.");
+
+      /*  
+        We need to aprove this Market to spend ours DAI, LINK tokens.
+      */
+
+      if (_paymentMethod == PriceFeed.DAI) {
+        _setApproval(address(this), DAI);
+
+        /*
+          After we approve the Market to spend our tokens,
+          we transfer the tokens to the seller.
+        */
+        IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, uint256(_amountTokensIn).div(uint256(_getPriceFeed(_paymentMethod))));
+     
+        /*
+          After we send the tokens DAI to the seller, we send
+          the tokens that the user buy to the user.
+        */
+
+        IERC1155(sales[_sellId].token).safeTransferFrom(
+          sales[_sellId].seller, 
+          msg.sender, 
+          sales[_sellId].tokenId, 
+          sales[_sellId].amountOfToken, 
+          "0x0"
+        );
+
+        /* 
+          After all we set the isSold to true for this sale.
+        */
+
+        sales[_sellId].isSold = true;
+      }
     }
 
     if (_amountTokensIn == 0 && _paymentMethod == PriceFeed.ETH) {
