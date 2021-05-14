@@ -59,6 +59,14 @@ contract MarketPlaceV1 is Initializable {
     uint256 _amount
   );
 
+  /// @notice This is the emitted event, when a sell is canceled.
+  event CanceledSell (
+    address _seller,
+    address _token,
+    uint256 _tokenId,
+    uint256 _amountOfToken
+  );
+
   /** 
     @notice This are the enums for the price feeds that what we are working.
     @dev It's going to be passed as a parameter.
@@ -220,6 +228,12 @@ contract MarketPlaceV1 is Initializable {
         sales[_sellId].amountOfToken, 
         "0x0"
       );
+
+      /* 
+        After all we set the isSold to true for this sale.
+      */
+
+      sales[_sellId].isSold = true;
     }
   }
 
@@ -240,5 +254,15 @@ contract MarketPlaceV1 is Initializable {
       in our marketplace.
     */
     delete sales[_idSell];
+
+    /*
+      Emit the event when a sell is cancel.
+    */
+    emit CanceledSell(
+      sales[_idSell].seller, 
+      sales[_idSell].token, 
+      sales[_idSell].tokenId,
+      sales[_idSell].amountOfToken
+    );
   }
 }
