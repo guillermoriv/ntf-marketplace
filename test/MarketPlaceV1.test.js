@@ -59,8 +59,7 @@ describe('Testing the NFT MarketPlaceV1', () => {
 
   it('showing the sell created by the ERC1155 token', async () => {
     const result = await marketPlaceV1.sales(0);
-
-    console.log(result);
+    assert.ok(result);
   });
 
   it('buys the token at the current price of the oracle in ETH', async () => {
