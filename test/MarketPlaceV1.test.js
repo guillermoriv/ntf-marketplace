@@ -62,7 +62,7 @@ describe('Testing the NFT MarketPlaceV1', () => {
     }
   });
 
-  it('buys the token at the current price of the oracle', async () => {
+  it('buys the token at the current price of the oracle in ETH', async () => {
     // Approving first the MarketPlaceV1 in the ERC1155 manipulate the tokens.
     await testERC1155.setApprovalForAll(marketPlaceV1.address, true);
     /* 
@@ -70,7 +70,8 @@ describe('Testing the NFT MarketPlaceV1', () => {
       on this ERC1155 contract.
     */
 
-    const result = await marketPlaceV1.buyToken(2, 10);
-    console.log(parseFloat(result.toString()) / 10 ** 8);
+    const result = await marketPlaceV1.buyToken(2, 0, 0, {
+      value: await ethers.utils.parseEther('1'),
+    });
   });
 });
