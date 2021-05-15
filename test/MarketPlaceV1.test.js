@@ -68,8 +68,9 @@ describe('Testing the NFT MarketPlaceV1', () => {
     assert(result);
   });
 
-  it('showing the sell created by the ERC1155 token', async () => {
+  it('showing the sell created in the Market with the index 0', async () => {
     const result = await marketPlaceV1.sales(0);
+    console.log('Information of the sale 0:');
     for (const res of result) {
       console.log(res.toString());
     }
@@ -96,6 +97,15 @@ describe('Testing the NFT MarketPlaceV1', () => {
       .createSell(testERC1155.address, 1, 4500, 4000, 5 * 10 ** 2);
 
     assert(result);
+  });
+
+  it('showing the sell created in the Market with the index 1', async () => {
+    const result = await marketPlaceV1.sales(1);
+    console.log('Information of the sale 1:');
+    for (const res of result) {
+      console.log(res.toString());
+    }
+    assert.ok(result);
   });
 
   it('token buyed in the ERC1155 need to dropdown the amount', async () => {
@@ -139,6 +149,15 @@ describe('Testing the NFT MarketPlaceV1', () => {
       .createSell(testERC1155.address, 1, 4500, 4000, 60 * 10 ** 2);
 
     assert(result);
+  });
+
+  it('showing the sell created in the Market with the index 2', async () => {
+    const result = await marketPlaceV1.sales(2);
+    console.log('Information of the sale 2:');
+    for (const res of result) {
+      console.log(res.toString());
+    }
+    assert.ok(result);
   });
 
   it('token buyed in the ERC1155 with LINK Tokens', async () => {
