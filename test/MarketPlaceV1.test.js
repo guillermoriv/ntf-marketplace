@@ -3,6 +3,8 @@ const assert = require('assert');
 
 let marketPlaceV1;
 let testERC1155;
+let DAItoken;
+let LINKtoken;
 
 before(async () => {
   // Creating the marketPlace for global testing:
@@ -25,6 +27,18 @@ before(async () => {
   await testERC1155
     .connect(addr1)
     .setApprovalForAll(marketPlaceV1.address, true);
+
+  // Aprove the market to spend out tokens.
+  const DAI = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
+  const LINK = '0x514910771AF9Ca656af840dff83E8264EcF986CA';
+
+  // DAI TOKEN
+  const DAIToken = await ethers.getContractAt('IERC20', DAI);
+  DAItoken = await DAIToken.deployed();
+
+  // LINK TOKEN
+  const LINKToken = await ethers.getContractAt('IERC20', LINK);
+  LINKtoken = await LINKToken.deployed();
 });
 
 describe('Testing the NFT MarketPlaceV1', () => {
@@ -41,21 +55,17 @@ describe('Testing the NFT MarketPlaceV1', () => {
     assert(marketPlaceTest.address);
   });
 
-  it('print the address of the marketPlace', async () => {
+  it('assert the marketPlaceV1 address', async () => {
     assert.ok(marketPlaceV1.address);
   });
 
-  it('ERC1155 contract and try to create a sell', async () => {
+  it('creating a sell in the ERC1155 contract for ETH', async () => {
     const [owner, addr1, addr2] = await ethers.getSigners();
     const result = await marketPlaceV1
       .connect(addr1)
-      .createSell(testERC1155.address, 1, 4500, 4000, 19.5 * 10 ** 2);
+      .createSell(testERC1155.address, 1, 4500, 4000, 5 * 10 ** 2);
 
     assert(result);
-  });
-
-  it('can be upgradeable to a second implementation', async () => {
-    //@TODO need to make a implementation V2 of this contract.
   });
 
   it('showing the sell created by the ERC1155 token', async () => {
@@ -79,20 +89,37 @@ describe('Testing the NFT MarketPlaceV1', () => {
     });
   });
 
+  it('creating a sell in the ERC1155 contract for DAI token', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+    const result = await marketPlaceV1
+      .connect(addr1)
+      .createSell(testERC1155.address, 1, 4500, 4000, 5 * 10 ** 2);
+
+    assert(result);
+  });
+
   it('token buyed in the ERC1155 need to dropdown the amount', async () => {
     const [owner, addr1, addr2] = await ethers.getSigners();
     const balance = await testERC1155.balanceOf(addr1.address, 1);
     assert.strictEqual(balance.toString(), '999999999999999999999995500');
   });
 
-  it('show the actual price of the asset', async () => {
+  it('token buyed in the ERC1155 with DAI Tokens', async () => {
     const [owner, addr1, addr2] = await ethers.getSigners();
 
-    const result = await marketPlaceV1._getPrice(0);
-    console.log(result.toString());
+    await DAItoken.approve(
+      marketPlaceV1.address,
+      ethers.utils.parseUnits('30', 18)
+    );
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+    await marketPlaceV1.buyToken(0, 1, ethers.utils.parseUnits('30', 18));
   });
 
-  it('token buyed in the ERC1155 with DAI Tokens', async () => {
+  it('see the balance of the owner in the DAI Token', async () => {
     const [owner, addr1, addr2] = await ethers.getSigners();
 
     /*
@@ -100,6 +127,45 @@ describe('Testing the NFT MarketPlaceV1', () => {
       in the next test, we check the balance of the
       owner of the sell.
     */
-    await marketPlaceV1.buyToken(0, 0, 40);
+
+    const result = await DAItoken.balanceOf(owner.address);
+    console.log('BALANCE OF OWNER DAI: ', (result / 1e18).toString());
+  });
+
+  it('creating a sell in the ERC1155 contract for LINK token', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+    const result = await marketPlaceV1
+      .connect(addr1)
+      .createSell(testERC1155.address, 1, 4500, 4000, 60 * 10 ** 2);
+
+    assert(result);
+  });
+
+  it('token buyed in the ERC1155 with LINK Tokens', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
+    await LINKtoken.approve(
+      marketPlaceV1.address,
+      ethers.utils.parseUnits('20', 18)
+    );
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+    await marketPlaceV1.buyToken(1, 2, ethers.utils.parseUnits('20', 18));
+  });
+
+  it('see the balance of the owner in the LINK Tokens', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+
+    const result = await LINKtoken.balanceOf(owner.address);
+    console.log('BALANCE OF OWNER LINK:', (result / 1e18).toString());
   });
 });

@@ -67,6 +67,15 @@ contract MarketPlaceV1 is Initializable {
     uint256 _amountOfToken
   );
 
+  /// @notice This is the emitted event, when a buy is made.
+  event BuyEvent (
+    address _buyer,
+    address _token,
+    uint256 _tokenId,
+    uint256 _amountOfToken,
+    uint256 _price
+  );
+
   /** 
     @notice This are the enums for the price feeds that what we are working.
     @dev It's going to be passed as a parameter.
@@ -105,33 +114,11 @@ contract MarketPlaceV1 is Initializable {
     fee = _fee;
   }
 
-  /**
-    @dev Infinite approve for this marketplace transfer your tokens.
-    @param _to Set the address to for the approve.
-    @param _erc20 The address of the token.
-  **/
-  function _setApproval(
-    address _to,
-    address _erc20,
-    uint256 _amountIn
-  ) internal {
-    if (_amountIn > IERC20(_erc20).allowance(address(this), _to)) {
-      IERC20(_erc20).approve(_to, type(uint256).max);
-    }
-  }
-
-  // @REMOVE
-  /** 
-    @dev Testing porpuses.
-  **/
-  function _getPrice(PriceFeed _paymentMethod) external view returns (uint256) {
-    return sales[0].price.div(100).div(_getPriceFeed(_paymentMethod));
-  }
-
   /** 
     @notice Internal function to check the prices in the oracle.
     @dev You need to pass the enum as the parameter.
     @param _priceFeed Is the price feed that we are going to check in the oracle.
+    @dev I am dividing by 1e8, because I want to have the price in USD with decimals.
   **/
   function _getPriceFeed(PriceFeed _priceFeed) internal view returns (uint256 resultPrice){
     /*
@@ -210,26 +197,25 @@ contract MarketPlaceV1 is Initializable {
   **/
   function buyToken(PriceFeed _paymentMethod, uint256 _sellId, uint256 _amountTokensIn) external payable {
     require(msg.sender != address(0), "buyToken: Needs to be a address.");
+    require(sales[_sellId].isSold != true, "buyToken: The tokends were bought.");
 
     /*
       We only call this require, if we know the user is passing , 
       ethereum and not a token to pay for the tokens.
     */
     if (_paymentMethod == PriceFeed.DAI || _paymentMethod == PriceFeed.LINK) {
-      require(_amountTokensIn.mul(_getPriceFeed(_paymentMethod)) >= sales[_sellId].price.div(100), "buyToken: The amount of token sended need to be grater or equal to the price.");
+      require(_amountTokensIn.div(1e18).mul(_getPriceFeed(_paymentMethod)) >= sales[_sellId].price.div(100), "buyToken: The amount of token sended need to be grater or equal to the price.");
 
       /*  
         We need to aprove this Market to spend ours DAI, LINK tokens.
       */
 
       if (_paymentMethod == PriceFeed.DAI) {
-        _setApproval(address(this), DAI, _amountTokensIn);
-
         /*
-          After we approve the Market to spend our tokens,
-          we transfer the tokens to the seller.
+          We make the transfer from the msg.sender to the seller of
+          the current sell that we ask about in the parameter.
         */
-        IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
+        IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)).mul(1e18));
      
         /*
           After we send the tokens DAI to the seller, we send
@@ -252,13 +238,11 @@ contract MarketPlaceV1 is Initializable {
       }
 
       if (_paymentMethod == PriceFeed.LINK) {
-        _setApproval(address(this), LINK, _amountTokensIn);
-
         /*
-          After we approve the Market to spend our tokens,
-          we transfer the tokens to the seller.
+          We make the transfer from the msg.sender to the seller of
+          the current sell that we ask about in the parameter.
         */
-        IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
+        IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)).mul(1e18));
      
         /*
           After we send the tokens LINK to the seller, we send
@@ -308,6 +292,18 @@ contract MarketPlaceV1 is Initializable {
 
       sales[_sellId].isSold = true;
     }
+
+    /* 
+      Emit the buy event when the is closed.
+    */
+
+    emit BuyEvent (
+      msg.sender,
+      sales[_sellId].token, 
+      sales[_sellId].tokenId,
+      sales[_sellId].amountOfToken,
+      sales[_sellId].price
+    );
   }
 
 
