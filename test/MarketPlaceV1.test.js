@@ -6,7 +6,7 @@ let testERC1155;
 
 before(async () => {
   // Creating the marketPlace for global testing:
-  const [owner] = await ethers.getSigners();
+  const [owner, addr1] = await ethers.getSigners();
 
   const MarketPlaceV1 = await ethers.getContractFactory('MarketPlaceV1');
   marketPlaceV1 = await upgrades.deployProxy(
@@ -18,8 +18,13 @@ before(async () => {
 
   // Creating the testERC1155 token:
   const TestERC1155 = await ethers.getContractFactory('TestERC1155');
-  testERC1155 = await TestERC1155.deploy();
+  testERC1155 = await TestERC1155.connect(addr1).deploy();
   await testERC1155.deployed();
+
+  // Approving first the MarketPlaceV1 in the ERC1155 manipulate the tokens.
+  await testERC1155
+    .connect(addr1)
+    .setApprovalForAll(marketPlaceV1.address, true);
 });
 
 describe('Testing the NFT MarketPlaceV1', () => {
@@ -40,15 +45,11 @@ describe('Testing the NFT MarketPlaceV1', () => {
     assert.ok(marketPlaceV1.address);
   });
 
-  it('created an ERC1155 contract and try to create a sell', async () => {
+  it('ERC1155 contract and try to create a sell', async () => {
     const [owner, addr1, addr2] = await ethers.getSigners();
-    const result = await marketPlaceV1.createSell(
-      testERC1155.address,
-      1,
-      4500,
-      4000,
-      4.5 * 10 ** 2
-    );
+    const result = await marketPlaceV1
+      .connect(addr1)
+      .createSell(testERC1155.address, 1, 4500, 4000, 19.5 * 10 ** 2);
 
     assert(result);
   });
@@ -59,32 +60,46 @@ describe('Testing the NFT MarketPlaceV1', () => {
 
   it('showing the sell created by the ERC1155 token', async () => {
     const result = await marketPlaceV1.sales(0);
+    for (const res of result) {
+      console.log(res.toString());
+    }
     assert.ok(result);
   });
 
   it('buys the token at the current price of the oracle in ETH', async () => {
     const [owner, addr1, addr2] = await ethers.getSigners();
 
-    // Approving first the MarketPlaceV1 in the ERC1155 manipulate the tokens.
-    await testERC1155.setApprovalForAll(marketPlaceV1.address, true);
-    /* 
-      After approving we can make the call to buy a token from the MarketPlace
-      on this ERC1155 contract.
-    */
-
     /*
       We make the buy with the addr1 and after that
       in the next test, we check the balance of the
       owner of the sell.
     */
-    await marketPlaceV1.connect(addr1).buyToken(2, 0, 0, {
+    await marketPlaceV1.buyToken(2, 0, 0, {
       value: await ethers.utils.parseEther('1'),
     });
   });
 
   it('token buyed in the ERC1155 need to dropdown the amount', async () => {
     const [owner, addr1, addr2] = await ethers.getSigners();
-    const balance = await testERC1155.balanceOf(owner.address, 1);
+    const balance = await testERC1155.balanceOf(addr1.address, 1);
     assert.strictEqual(balance.toString(), '999999999999999999999995500');
+  });
+
+  it('show the actual price of the asset', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
+    const result = await marketPlaceV1._getPrice(0);
+    console.log(result.toString());
+  });
+
+  it('token buyed in the ERC1155 with DAI Tokens', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+    await marketPlaceV1.buyToken(0, 0, 40);
   });
 });

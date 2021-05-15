@@ -112,9 +112,20 @@ contract MarketPlaceV1 is Initializable {
   **/
   function _setApproval(
     address _to,
-    address _erc20
+    address _erc20,
+    uint256 _amountIn
   ) internal {
-    IERC20(_erc20).approve(_to, type(uint256).max);
+    if (_amountIn > IERC20(_erc20).allowance(address(this), _to)) {
+      IERC20(_erc20).approve(_to, type(uint256).max);
+    }
+  }
+
+  // @REMOVE
+  /** 
+    @dev Testing porpuses.
+  **/
+  function _getPrice(PriceFeed _paymentMethod) external view returns (uint256) {
+    return sales[0].price.div(100).div(_getPriceFeed(_paymentMethod));
   }
 
   /** 
@@ -122,24 +133,24 @@ contract MarketPlaceV1 is Initializable {
     @dev You need to pass the enum as the parameter.
     @param _priceFeed Is the price feed that we are going to check in the oracle.
   **/
-  function _getPriceFeed(PriceFeed _priceFeed) internal view returns (int256 resultPrice){
+  function _getPriceFeed(PriceFeed _priceFeed) internal view returns (uint256 resultPrice){
     /*
       We are going to check for the differents price feeds
       in out contract and get the price of that feed.
     */
     if (_priceFeed == PriceFeed.DAI) {
       (,int price,,,) = AggregatorV3Interface(DAIUSD).latestRoundData();
-      resultPrice = price;
+      resultPrice = uint256(price).div(1e8);
     }
 
     if (_priceFeed == PriceFeed.LINK) {
       (,int price,,,) = AggregatorV3Interface(LINKUSD).latestRoundData();
-      resultPrice = price;
+      resultPrice = uint256(price).div(1e8);
     }
 
     if (_priceFeed == PriceFeed.ETH) {
       (,int price,,,) = AggregatorV3Interface(ETHUSD).latestRoundData();
-      resultPrice = price;
+      resultPrice = uint256(price).div(1e8);
     }
   }
 
@@ -205,20 +216,20 @@ contract MarketPlaceV1 is Initializable {
       ethereum and not a token to pay for the tokens.
     */
     if (_paymentMethod == PriceFeed.DAI || _paymentMethod == PriceFeed.LINK) {
-      require(_amountTokensIn.div(uint256(_getPriceFeed(_paymentMethod))) >= sales[_sellId].price.div(100), "buyToken: The amount of token sended need to be grater or equal to the price.");
+      require(_amountTokensIn.mul(_getPriceFeed(_paymentMethod)) >= sales[_sellId].price.div(100), "buyToken: The amount of token sended need to be grater or equal to the price.");
 
       /*  
         We need to aprove this Market to spend ours DAI, LINK tokens.
       */
 
       if (_paymentMethod == PriceFeed.DAI) {
-        _setApproval(address(this), DAI);
+        _setApproval(address(this), DAI, _amountTokensIn);
 
         /*
           After we approve the Market to spend our tokens,
           we transfer the tokens to the seller.
         */
-        IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, _amountTokensIn.div(uint256(_getPriceFeed(_paymentMethod))));
+        IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
      
         /*
           After we send the tokens DAI to the seller, we send
@@ -241,13 +252,13 @@ contract MarketPlaceV1 is Initializable {
       }
 
       if (_paymentMethod == PriceFeed.LINK) {
-        _setApproval(address(this), LINK);
+        _setApproval(address(this), LINK, _amountTokensIn);
 
         /*
           After we approve the Market to spend our tokens,
           we transfer the tokens to the seller.
         */
-        IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, _amountTokensIn.div(uint256(_getPriceFeed(_paymentMethod))));
+        IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
      
         /*
           After we send the tokens LINK to the seller, we send
@@ -271,13 +282,13 @@ contract MarketPlaceV1 is Initializable {
     }
 
     if (_amountTokensIn == 0 && _paymentMethod == PriceFeed.ETH) {
-      require(msg.value >= (uint256(uint256(sales[_sellId].price).div(100)).div(uint256(_getPriceFeed(_paymentMethod)))), "buyToken: Needs to be greater or equal to the price.");
+      require(msg.value >= sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)), "buyToken: Needs to be greater or equal to the price.");
       /*
         We send the ETH sended in the function, for the price
         in USD of the sell.
       */
-      payable(address(sales[_sellId].seller)).transfer(sales[_sellId].price.div(100).div(uint256(_getPriceFeed(_paymentMethod))));
-      payable(address(msg.sender)).transfer(msg.value - sales[_sellId].price.div(100).div(uint256(_getPriceFeed(_paymentMethod))));
+      payable(address(sales[_sellId].seller)).transfer(sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
+      payable(address(msg.sender)).transfer(msg.value - sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
       
       /* 
         After we send the ETH to the user, we send
