@@ -34,9 +34,9 @@ contract MarketPlaceV1 is Initializable {
   **/
   address private admin;
   address private recipient;
-  uint private fee;
+  uint256 private fee;
   mapping(uint => Sell) public sales;
-  uint public salesId;
+  uint256 public salesId;
   using SafeMath for uint256; 
 
   /// @notice This is the Sell struct, the basic structs contain the owner of the selling tokens.
@@ -93,7 +93,7 @@ contract MarketPlaceV1 is Initializable {
     require(_recipient != address(0));
     admin = msg.sender;
     recipient = _recipient;
-    fee = 10; 
+    fee = 1; 
   }
 
   /** 
@@ -109,7 +109,7 @@ contract MarketPlaceV1 is Initializable {
     @param _recipient This is the updated recipient of the fees.
     @param _fee This is the updated fee for the recipient to receive.
   **/
-  function updateFeeAndRecipient(address _recipient, uint _fee) external onlyAdmin() {
+  function updateFeeAndRecipient(address _recipient, uint256 _fee) external onlyAdmin() {
     recipient = _recipient;
     fee = _fee;
   }
@@ -215,8 +215,16 @@ contract MarketPlaceV1 is Initializable {
           We make the transfer from the msg.sender to the seller of
           the current sell that we ask about in the parameter.
         */
+
         IERC20(DAI).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)).mul(1e18));
      
+        /*
+          After we pass the tokens to the seller, now we pass
+          the tokens to the fees to the recipient.
+        */
+
+        IERC20(DAI).transferFrom(msg.sender, recipient, sales[_sellId].price.div(100).mul(fee.div(100)).div(_getPriceFeed(_paymentMethod)).mul(1e18));
+
         /*
           After we send the tokens DAI to the seller, we send
           the tokens that the user buy to the user.
@@ -242,8 +250,16 @@ contract MarketPlaceV1 is Initializable {
           We make the transfer from the msg.sender to the seller of
           the current sell that we ask about in the parameter.
         */
+
         IERC20(LINK).transferFrom(msg.sender, sales[_sellId].seller, sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)).mul(1e18));
      
+        /*
+          After we pass the tokens to the seller, now we pass
+          the tokens to the fees to the recipient.
+        */
+
+        IERC20(DAI).transferFrom(msg.sender, recipient, sales[_sellId].price.div(100).mul(fee.div(100)).div(_getPriceFeed(_paymentMethod)).mul(1e18));
+        
         /*
           After we send the tokens LINK to the seller, we send
           the tokens that the user buy to the user.
@@ -272,6 +288,16 @@ contract MarketPlaceV1 is Initializable {
         in USD of the sell.
       */
       payable(address(sales[_sellId].seller)).transfer(sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
+      
+      /*
+        We send the fee to the recepient and
+        make the transfer.
+      */
+
+      payable(address(recipient)).transfer(sales[_sellId].price.div(100).mul(fee.div(100)).div(_getPriceFeed(_paymentMethod)));
+      
+      /* After that, we send back the left ETH in msg.value. */
+
       payable(address(msg.sender)).transfer(msg.value - sales[_sellId].price.div(100).div(_getPriceFeed(_paymentMethod)));
       
       /* 
