@@ -187,4 +187,30 @@ describe('Testing the NFT MarketPlaceV1', () => {
     const result = await LINKtoken.balanceOf(owner.address);
     console.log('BALANCE OF OWNER LINK:', (result / 1e18).toString());
   });
+
+  it('try to buy a token that has already been purchased', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
+    await DAItoken.approve(
+      marketPlaceV1.address,
+      ethers.utils.parseUnits('30', 18)
+    );
+
+    /* 
+      This test should fail, because he can't buy a token that has been
+      already purchased.
+    */
+
+    try {
+      /*
+        We make the buy with the addr1 and after that
+        in the next test, we check the balance of the
+        owner of the sell.
+      */
+      await marketPlaceV1.buyToken(0, 1, ethers.utils.parseUnits('30', 18));
+      assert(false);
+    } catch (error) {
+      assert(error);
+    }
+  });
 });
