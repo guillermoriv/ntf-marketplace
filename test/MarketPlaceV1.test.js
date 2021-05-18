@@ -161,8 +161,6 @@ describe('Testing the NFT MarketPlaceV1', () => {
   });
 
   it('token buyed in the ERC1155 with LINK Tokens', async () => {
-    const [owner, addr1, addr2] = await ethers.getSigners();
-
     await LINKtoken.approve(
       marketPlaceV1.address,
       ethers.utils.parseUnits('20', 18)
@@ -189,8 +187,6 @@ describe('Testing the NFT MarketPlaceV1', () => {
   });
 
   it('try to buy a token that has already been purchased', async () => {
-    const [owner, addr1, addr2] = await ethers.getSigners();
-
     await DAItoken.approve(
       marketPlaceV1.address,
       ethers.utils.parseUnits('30', 18)
