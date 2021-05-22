@@ -2,6 +2,7 @@ const { ethers, upgrades } = require('hardhat');
 const assert = require('assert');
 
 let marketPlaceV1;
+let marketPlaceV2;
 let testERC1155;
 let swapper;
 let DAItoken;
@@ -10,7 +11,7 @@ let UNItoken;
 let AAVEtoken;
 
 before(async () => {
-  // Creating the marketPlace for global testing:
+  // Creating the marketPlaceV1 for global testing:
   const [owner, addr1] = await ethers.getSigners();
 
   const MarketPlaceV1 = await ethers.getContractFactory('MarketPlaceV1');
@@ -20,6 +21,13 @@ before(async () => {
     { initializer: 'initialize' }
   );
   await marketPlaceV1.deployed();
+
+  // Upgrading the marketPlaceV2 for global testing
+  const MarketPlaceV2 = await ethers.getContractFactory('MarketPlaceV2');
+  marketPlaceV2 = await upgrades.upgradeProxy(
+    marketPlaceV1.address,
+    MarketPlaceV2
+  );
 
   // Creating the testERC1155 token:
   const TestERC1155 = await ethers.getContractFactory('TestERC1155');
@@ -82,11 +90,11 @@ describe('Swapping ETH for Tokens', () => {
 });
 
 /*
-  NFT MARKETPLACEV1 TESTS.
+  NFT MARKETPLACEV2 TESTS.
 */
 
 describe('Testing the NFT MarketPlaceV1', () => {
-  it('deploy a new contract correctly without error', async () => {
+  it('deploying the marketplaceV1 without a problem', async () => {
     // Creating a marketplace just for the porpuse of testing.
     const MarketPlaceTest = await ethers.getContractFactory('MarketPlaceV1');
     const marketPlaceTest = await upgrades.deployProxy(
@@ -97,6 +105,25 @@ describe('Testing the NFT MarketPlaceV1', () => {
     await marketPlaceTest.deployed();
 
     assert(marketPlaceTest.address);
+  });
+
+  it('upgrade the contract to the marketPlaceV2 without a problem', async () => {
+    // Creating a marketplace just for the porpuse of testing.
+    const MarketPlaceTest = await ethers.getContractFactory('MarketPlaceV1');
+    const marketPlaceTest = await upgrades.deployProxy(
+      MarketPlaceTest,
+      ['0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'],
+      { initializer: 'initialize' }
+    );
+    await marketPlaceTest.deployed();
+
+    const MarketPlaceTestV2 = await ethers.getContractFactory('MarketPlaceV2');
+    const marketPlaceTestV2 = await upgrades.upgradeProxy(
+      marketPlaceTest.address,
+      MarketPlaceTestV2
+    );
+
+    assert(marketPlaceTestV2.address);
   });
 
   it('assert the marketPlaceV1 address', async () => {
@@ -228,6 +255,94 @@ describe('Testing the NFT MarketPlaceV1', () => {
 
     const result = await LINKtoken.balanceOf(owner.address);
     console.log('BALANCE OF OWNER LINK:', (result / 1e18).toString());
+  });
+
+  it('creating a sell in the ERC1155 contract for UNI token', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+    const result = await marketPlaceV1
+      .connect(addr1)
+      .createSell(testERC1155.address, 1, 4500, 4000, 60 * 10 ** 2);
+
+    assert(result);
+  });
+
+  it('showing the sell created in the Market with the index 3', async () => {
+    const result = await marketPlaceV1.sales(3);
+    console.log('Information of the sale 3:');
+    for (const res of result) {
+      console.log(res.toString());
+    }
+    assert.ok(result);
+  });
+
+  it('token buyed in the ERC1155 with UNI Tokens', async () => {
+    await UNItoken.approve(
+      marketPlaceV1.address,
+      ethers.utils.parseUnits('20', 18)
+    );
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+    await marketPlaceV1.buyToken(1, 3, ethers.utils.parseUnits('20', 18));
+  });
+
+  it('see the balance of the owner in the UNI Tokens', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+
+    const result = await UNItoken.balanceOf(owner.address);
+    console.log('BALANCE OF OWNER UNI:', (result / 1e18).toString());
+  });
+
+  it('creating a sell in the ERC1155 contract for AAVE token', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+    const result = await marketPlaceV1
+      .connect(addr1)
+      .createSell(testERC1155.address, 1, 4500, 4000, 60 * 10 ** 2);
+
+    assert(result);
+  });
+
+  it('showing the sell created in the Market with the index 4', async () => {
+    const result = await marketPlaceV1.sales(4);
+    console.log('Information of the sale 4:');
+    for (const res of result) {
+      console.log(res.toString());
+    }
+    assert.ok(result);
+  });
+
+  it('token buyed in the ERC1155 with AAVE Tokens', async () => {
+    await AAVEtoken.approve(
+      marketPlaceV1.address,
+      ethers.utils.parseUnits('20', 18)
+    );
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+    await marketPlaceV1.buyToken(1, 4, ethers.utils.parseUnits('20', 18));
+  });
+
+  it('see the balance of the owner in the AAVE Tokens', async () => {
+    const [owner, addr1, addr2] = await ethers.getSigners();
+
+    /*
+      We make the buy with the addr1 and after that
+      in the next test, we check the balance of the
+      owner of the sell.
+    */
+
+    const result = await AAVEtoken.balanceOf(owner.address);
+    console.log('BALANCE OF OWNER AAVE:', (result / 1e18).toString());
   });
 
   it('try to buy a token that has already been purchased', async () => {
