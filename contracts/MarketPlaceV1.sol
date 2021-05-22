@@ -16,6 +16,16 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract MarketPlaceV1 is Initializable {
 
   /** 
+    @dev Storage variables.
+  **/
+  address private admin;
+  address private recipient;
+  uint256 private fee;
+  mapping(uint => Sell) public sales;
+  uint256 public salesId;
+  using SafeMath for uint256; 
+
+  /** 
     @notice All of the Price Feeds for the Aggregator are down here.
     @dev PriceFeeds below.
   **/
@@ -28,16 +38,6 @@ contract MarketPlaceV1 is Initializable {
   **/
   address private constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address private constant LINK = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
-
-  /** 
-    @dev Storage variables.
-  **/
-  address private admin;
-  address private recipient;
-  uint256 private fee;
-  mapping(uint => Sell) public sales;
-  uint256 public salesId;
-  using SafeMath for uint256; 
 
   /// @notice This is the Sell struct, the basic structs contain the owner of the selling tokens.
   struct Sell {
