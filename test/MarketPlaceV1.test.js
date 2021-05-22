@@ -6,8 +6,6 @@ let testERC1155;
 let swapper;
 let DAItoken;
 let LINKtoken;
-let UNItoken;
-let AAVEtoken;
 
 before(async () => {
   // Creating the marketPlace for global testing:
@@ -34,8 +32,6 @@ before(async () => {
   // Aprove the market to spend out tokens.
   const DAI = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
   const LINK = '0x514910771AF9Ca656af840dff83E8264EcF986CA';
-  const UNI = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984';
-  const AVEE = '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9';
 
   // Deploying the Swapper to make the swaps for the tokens to test
   const Swapper = await ethers.getContractFactory('SwapperV1');
@@ -51,14 +47,6 @@ before(async () => {
   // LINK TOKEN
   const LINKToken = await ethers.getContractAt('IERC20', LINK);
   LINKtoken = await LINKToken.deployed();
-
-  // UNI TOKEN
-  const UNIToken = await ethers.getContractAt('IERC20', UNI);
-  UNItoken = await UNIToken.deployed();
-
-  // AAVE TOKEN
-  const AAVEToken = await ethers.getContractAt('IERC20', AVEE);
-  AAVEtoken = await AAVEToken.deployed();
 });
 
 /*
@@ -67,16 +55,14 @@ before(async () => {
 
 describe('Swapping ETH for Tokens', () => {
   it('change ETH for multiple tokens', async () => {
-    const porcents = [25 * 10, 25 * 10, 25 * 10, 25 * 10];
+    const porcents = [50 * 10, 50 * 10];
     const tokens = [
       '0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI Token
       '0x514910771AF9Ca656af840dff83E8264EcF986CA', // LINK Token
-      '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', // UNI Token
-      '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9', // AAVEE Token
     ];
 
     await swapper.swapEthForTokens(tokens, porcents, {
-      value: ethers.utils.parseEther('10'),
+      value: ethers.utils.parseEther('5'),
     });
   });
 });
