@@ -3,6 +3,7 @@ const assert = require('assert');
 
 let marketPlaceV1;
 let testERC1155;
+let swapper;
 let DAItoken;
 let LINKtoken;
 
@@ -32,6 +33,13 @@ before(async () => {
   const DAI = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
   const LINK = '0x514910771AF9Ca656af840dff83E8264EcF986CA';
 
+  // Deploying the Swapper to make the swaps for the tokens to test
+  const Swapper = await ethers.getContractFactory('SwapperV1');
+  swapper = await upgrades.deployProxy(Swapper, [await owner.getAddress()], {
+    initializer: 'initialize',
+  });
+  await swapper.deployed();
+
   // DAI TOKEN
   const DAIToken = await ethers.getContractAt('IERC20', DAI);
   DAItoken = await DAIToken.deployed();
@@ -53,6 +61,18 @@ describe('Testing the NFT MarketPlaceV1', () => {
     await marketPlaceTest.deployed();
 
     assert(marketPlaceTest.address);
+  });
+
+  it('change ETH for multiple tokens', async () => {
+    const porcents = [40 * 10, 60 * 10];
+    const tokens = [
+      '0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI Stablecoin
+      '0x514910771AF9Ca656af840dff83E8264EcF986CA', // LINK Token
+    ];
+
+    await swapper.swapEthForTokens(tokens, porcents, {
+      value: ethers.utils.parseEther('1'),
+    });
   });
 
   it('assert the marketPlaceV1 address', async () => {
