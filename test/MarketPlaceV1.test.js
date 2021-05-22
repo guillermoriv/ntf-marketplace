@@ -66,7 +66,7 @@ describe('Testing the NFT MarketPlaceV1', () => {
   it('change ETH for multiple tokens', async () => {
     const porcents = [40 * 10, 60 * 10];
     const tokens = [
-      '0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI Stablecoin
+      '0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI Token
       '0x514910771AF9Ca656af840dff83E8264EcF986CA', // LINK Token
     ];
 
