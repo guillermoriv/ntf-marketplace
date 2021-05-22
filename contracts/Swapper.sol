@@ -39,8 +39,4 @@ contract SwapperV1 is Initializable {
       (1, _path, msg.sender, block.timestamp + 3600);
     }
   }
-
-  function printVersion() external pure returns(string memory) {
-    return "Hello, this is the version upgradeable of SwapperV1";
-  }
 }
